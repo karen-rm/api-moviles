@@ -8,6 +8,12 @@ app = Flask(__name__)
 CORS(app)
 
 def get_conn():
+    # 1) Intenta usar la url completa de railway
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        return psycopg2.connect(db_url, sslmode="require", cursor_factory=RealDictCursor)
+
+    # 2) Si falla, usa las variables de PGHOST / PGUSER
     return psycopg2.connect(
         host=os.getenv("PGHOST"),
         dbname=os.getenv("PGDATABASE"),
@@ -16,6 +22,7 @@ def get_conn():
         port=os.getenv("PGPORT"),
         cursor_factory=RealDictCursor
     )
+
 
 @app.route("/cuestionarios", methods=["GET"])
 def get_cuestionarios():
