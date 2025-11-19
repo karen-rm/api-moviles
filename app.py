@@ -8,13 +8,15 @@ app = Flask(__name__)
 CORS(app)
 
 def get_conn():
-    # En local puedes usar variables de entorno o URL fija
-    # Railway te dará vars de entorno en producción
-    DATABASE_URL = os.getenv("DATABASE_URL")  # Railway usa DATABASE_URL
-    if DATABASE_URL:
-        return psycopg2.connect(DATABASE_URL, sslmode="require", cursor_factory=RealDictCursor)
-    # fallback local 
-    return psycopg2.connect(host="localhost", dbname="quizzes", user="postgres", password="13postgre22", cursor_factory=RealDictCursor)
+    return psycopg2.connect(
+        host=os.getenv("PGHOST"),
+        dbname=os.getenv("PGDATABASE"),
+        user=os.getenv("PGUSER"),
+        password=os.getenv("PGPASSWORD"),
+        port=os.getenv("PGPORT"),
+        cursor_factory=RealDictCursor
+    )
+
 
 @app.route("/cuestionarios", methods=["GET"])
 def get_cuestionarios():
@@ -48,7 +50,7 @@ def create_item():
     correcta = data.get("correcta")
     opc1 = data.get("opc1")
     opc2 = data.get("opc2")
-    if not pregunta & correcta & opc1 & opc2:
+    if not (pregunta and correcta and opc1 and opc2):
         return jsonify({"error":"4 campos required"}), 400
     conn = get_conn()
     cur = conn.cursor()

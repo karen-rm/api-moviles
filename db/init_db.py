@@ -1,13 +1,10 @@
 import psycopg2
 
 conn = psycopg2.connect(
-     host=os.getenv("PGHOST"),
-     dbname=os.getenv("PGDATABASE"),
-     user=os.getenv("PGUSER"),
-     password=os.getenv("PGPASSWORD"),
-     port=os.getenv("PGPORT"),
-     cursor_factory=RealDictCursor
-    
+    host="localhost",
+    dbname="quizzes",
+    user="postgres",
+    password="13postgre22"
 )
 
 cur = conn.cursor()
