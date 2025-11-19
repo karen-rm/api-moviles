@@ -7,6 +7,15 @@ from psycopg2.extras import RealDictCursor
 app = Flask(__name__)
 CORS(app)
 
+import os
+
+print("DATABASE_URL =", os.getenv("DATABASE_URL"))
+print("PGHOST =", os.getenv("PGHOST"))
+print("PGUSER =", os.getenv("PGUSER"))
+print("PGDATABASE =", os.getenv("PGDATABASE"))
+print("PGPORT =", os.getenv("PGPORT"))
+
+
 def get_conn():
     # 1) Intenta usar la url completa de railway
     db_url = os.getenv("DATABASE_URL")
