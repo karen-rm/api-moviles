@@ -17,7 +17,6 @@ def get_conn():
         cursor_factory=RealDictCursor
     )
 
-
 @app.route("/cuestionarios", methods=["GET"])
 def get_cuestionarios():
     conn = get_conn()
@@ -32,44 +31,64 @@ def get_cuestionarios():
 def create_cuestionario():
     data = request.get_json()
     titulo = data.get("titulo")
+
     if not titulo:
-        return jsonify({"error":"titulo required"}), 400
+        return jsonify({"error": "titulo required"}), 400
+
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("INSERT INTO cuestionario (titulo) VALUES (%s) RETURNING id, titulo;", (titulo,))
+    cur.execute(
+        "INSERT INTO cuestionario (titulo) VALUES (%s) RETURNING id, titulo;",
+        (titulo,)
+    )
     new = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
+
     return jsonify(new), 201
 
+
 @app.route("/pregunta", methods=["POST"])
-def create_item():
+def create_pregunta():
     data = request.get_json()
+
     pregunta = data.get("pregunta")
     correcta = data.get("correcta")
     opc1 = data.get("opc1")
     opc2 = data.get("opc2")
-    if not (pregunta and correcta and opc1 and opc2):
-        return jsonify({"error":"4 campos required"}), 400
+    cuestionario_id = data.get("cuestionario_id")
+
+    if not (pregunta and correcta and opc1 and opc2 and cuestionario_id):
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("INSERT INTO pregunta (preguntas) VALUES (%s) RETURNING id, pregunta;", (pregunta,))
+    cur.execute("""
+        INSERT INTO pregunta (pregunta, respuesta_correcta, opcion1, opcion2, cuestionario_id)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id, pregunta;
+    """, (pregunta, correcta, opc1, opc2, cuestionario_id))
+
     new = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
+
     return jsonify(new), 201
 
+
 @app.route("/cuestionario/<int:item_id>", methods=["DELETE"])
-def delete_item(item_id):
+def delete_cuestionario(item_id):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("DELETE FROM items WHERE id=%s;", (item_id,))
+    cur.execute("DELETE FROM cuestionario WHERE id=%s;", (item_id,))
     conn.commit()
     cur.close()
     conn.close()
-    return jsonify({"message":"deleted"}), 200
+
+    return jsonify({"message": "deleted"}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
