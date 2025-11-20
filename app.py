@@ -14,6 +14,8 @@ print("PGHOST =", os.getenv("PGHOST"))
 print("PGUSER =", os.getenv("PGUSER"))
 print("PGDATABASE =", os.getenv("PGDATABASE"))
 print("PGPORT =", os.getenv("PGPORT"))
+print("TEST_VAR =", os.getenv("TEST_VAR"))
+
 
 
 def get_conn():
