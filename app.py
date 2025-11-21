@@ -5,6 +5,7 @@ import psycopg2
 import secrets
 import string
 from psycopg2.extras import RealDictCursor
+import psycopg2.extras
 
 app = Flask(__name__)
 CORS(app)
@@ -101,10 +102,12 @@ def create_pregunta():
 
     return jsonify(new), 201
 
+
+
 @app.route("/preguntas/<int:cuestionario_id>", methods=["GET"])
 def obtener_preguntas(cuestionario_id):
     conn = get_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -119,16 +122,11 @@ def obtener_preguntas(cuestionario_id):
         ORDER BY id ASC;
     """, (cuestionario_id,))
 
-    filas = cur.fetchall()
+    preguntas = cur.fetchall()
     conn.close()
 
-    columnas = ["id", "pregunta", "respuesta_correcta", "opcion1", "opcion2", "cuestionario_id"]
+    return jsonify(preguntas), 200
 
-    resultado = []
-    for fila in filas:
-        resultado.append(dict(zip(columnas, fila)))   
-
-    return jsonify(resultado), 200
 
 
 
