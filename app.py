@@ -119,13 +119,17 @@ def obtener_preguntas(cuestionario_id):
         ORDER BY id ASC;
     """, (cuestionario_id,))
 
-    preguntas = cur.fetchall()
+    filas = cur.fetchall()
     conn.close()
 
     columnas = ["id", "pregunta", "respuesta_correcta", "opcion1", "opcion2", "cuestionario_id"]
-    resultado = [dict(zip(columnas, fila)) for fila in preguntas]
+
+    resultado = []
+    for fila in filas:
+        resultado.append(dict(zip(columnas, fila)))   
 
     return jsonify(resultado), 200
+
 
 
 @app.route("/cuestionario/<int:item_id>", methods=["DELETE"])
