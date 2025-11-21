@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import psycopg2
+import secrets
+import string
 from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
@@ -34,6 +36,10 @@ def get_conn():
         cursor_factory=RealDictCursor
     )
 
+def generar_codigo():
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
+
 
 @app.route("/cuestionarios", methods=["GET"])
 def get_cuestionarios():
@@ -52,12 +58,14 @@ def create_cuestionario():
 
     if not titulo:
         return jsonify({"error": "titulo required"}), 400
+    
+    codigo = generar_codigo()
 
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO cuestionario (titulo) VALUES (%s) RETURNING id, titulo;",
-        (titulo,)
+        "INSERT INTO cuestionario (codigo, titulo) VALUES (%s, %s) RETURNING id, codigo, titulo;",
+        (codigo, titulo)
     )
     new = cur.fetchone()
     conn.commit()

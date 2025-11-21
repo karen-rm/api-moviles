@@ -1,14 +1,15 @@
 import psycopg2
 
 conn = psycopg2.connect(
-    host="localhost",
-    dbname="quizzes",
+    host="ballast.proxy.rlwy.net",
+    port=30634,
+    dbname="railway",
     user="postgres",
-    password="13postgre22"
+    password="fmLDYpkxrKDAHWOLTiAyWzDQQLuPxxsl",
+    sslmode="require"
 )
 
 cur = conn.cursor()
-
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS cuestionario (
