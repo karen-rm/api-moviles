@@ -45,7 +45,7 @@ def generar_codigo():
 def get_cuestionarios():
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT id, titulo FROM cuestionario ORDER BY id DESC;")
+    cur.execute("SELECT id, titulo, codigo FROM cuestionario ORDER BY id DESC;")
     rows = cur.fetchall()
     cur.close()
     conn.close()
