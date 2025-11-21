@@ -11,7 +11,7 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
-cur.execute("""
+'''cur.execute("""
 CREATE TABLE IF NOT EXISTS cuestionario (
     id SERIAL PRIMARY KEY,
     titulo TEXT NOT NULL
@@ -28,6 +28,12 @@ CREATE TABLE IF NOT EXISTS pregunta (
     cuestionario_id INT NOT NULL,
     FOREIGN KEY (cuestionario_id) REFERENCES cuestionario(id) ON DELETE CASCADE
 );
+""")'''
+
+cur.execute("""
+ALTER TABLE cuestionario
+ALTER COLUMN codigo TYPE VARCHAR(8);
+
 """)
 
 conn.commit()

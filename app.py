@@ -18,8 +18,6 @@ print("PGDATABASE =", os.getenv("PGDATABASE"))
 print("PGPORT =", os.getenv("PGPORT"))
 print("TEST_VAR =", os.getenv("TEST_VAR"))
 
-
-
 def get_conn():
     # 1) Intenta usar la url completa de railway
     db_url = os.getenv("DATABASE_URL")
@@ -102,6 +100,32 @@ def create_pregunta():
     conn.close()
 
     return jsonify(new), 201
+
+@app.route("/preguntas/<int:cuestionario_id>", methods=["GET"])
+def obtener_preguntas(cuestionario_id):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            id,
+            pregunta,
+            respuesta_correcta,
+            opcion1,
+            opcion2,
+            cuestionario_id
+        FROM pregunta
+        WHERE cuestionario_id = %s
+        ORDER BY id ASC;
+    """, (cuestionario_id,))
+
+    preguntas = cur.fetchall()
+    conn.close()
+
+    columnas = ["id", "pregunta", "respuesta_correcta", "opcion1", "opcion2", "cuestionario_id"]
+    resultado = [dict(zip(columnas, fila)) for fila in preguntas]
+
+    return jsonify(resultado), 200
 
 
 @app.route("/cuestionario/<int:item_id>", methods=["DELETE"])
