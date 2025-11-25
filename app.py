@@ -20,12 +20,11 @@ print("PGPORT =", os.getenv("PGPORT"))
 print("TEST_VAR =", os.getenv("TEST_VAR"))
 
 def get_conn():
-    # 1) Intenta usar la url completa de railway
+
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         return psycopg2.connect(db_url, sslmode="require", cursor_factory=RealDictCursor)
 
-    # 2) Si falla, usa las variables de PGHOST / PGUSER
     return psycopg2.connect(
         host=os.getenv("PGHOST"),
         dbname=os.getenv("PGDATABASE"),
@@ -38,7 +37,6 @@ def get_conn():
 def generar_codigo():
     chars = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(chars) for _ in range(8))
-
 
 @app.route("/cuestionarios", methods=["GET"])
 def get_cuestionarios():
@@ -103,7 +101,6 @@ def create_pregunta():
     return jsonify(new), 201
 
 
-
 @app.route("/preguntas/<int:cuestionario_id>", methods=["GET"])
 def obtener_preguntas(cuestionario_id):
     conn = get_conn()
@@ -126,8 +123,6 @@ def obtener_preguntas(cuestionario_id):
     conn.close()
 
     return jsonify(preguntas), 200
-
-
 
 
 @app.route("/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
@@ -153,7 +148,34 @@ def eliminar_preguntas(cuestionario_id):
     deleted = cur.rowcount
     return jsonify({"message": "deleted", "count": deleted}), 200
 
+@app.route("/alumno", methods=["POST"])
+def guardar_alumno():
+    data = request.get_json()
 
+    nombre = data.get("nombre")
+    puntaje = data.get("puntaje")
+    tiempo_inicio = data.get("tiempo_inicio")
+    tiempo_final = data.get("tiempo_final")
+    aprobado = data.get("aprobado")
+    cuestionario_id = data.get("cuestionario_id")
+
+    if not (nombre and puntaje is not None and tiempo_inicio and tiempo_final and aprobado is not None and cuestionario_id):
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO alumno (nombre, puntaje, tiempo_inicio, tiempo_final, aprobado, cuestionario_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id, nombre, puntaje, tiempo_inicio, tiempo_final, aprobado, cuestionario_id;
+    """, (nombre, puntaje, tiempo_inicio, tiempo_final, aprobado, cuestionario_id))
+
+    new = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify(new), 201
 
 
 if __name__ == "__main__":
