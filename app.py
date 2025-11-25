@@ -130,16 +130,30 @@ def obtener_preguntas(cuestionario_id):
 
 
 
-@app.route("/cuestionario/<int:item_id>", methods=["DELETE"])
-def delete_cuestionario(item_id):
+@app.route("/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
+def eliminar_cuestionario(cuestionario_id):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("DELETE FROM cuestionario WHERE id=%s;", (item_id,))
+    cur.execute("DELETE FROM cuestionario WHERE id=%s;", (cuestionario_id,))
     conn.commit()
     cur.close()
     conn.close()
 
     return jsonify({"message": "deleted"}), 200
+
+@app.route("/preguntas/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
+def eliminar_preguntas(cuestionario_id):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM pregunta WHERE cuestionario_id=%s;", (cuestionario_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    deleted = cur.rowcount
+    return jsonify({"message": "deleted", "count": deleted}), 200
+
+
 
 
 if __name__ == "__main__":

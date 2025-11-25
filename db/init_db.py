@@ -30,11 +30,25 @@ CREATE TABLE IF NOT EXISTS pregunta (
 );
 """)'''
 
-cur.execute("""
+'''cur.execute("""
 ALTER TABLE cuestionario
 ALTER COLUMN codigo TYPE VARCHAR(8);
 
+""")'''
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS alumno (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    puntaje INT NOT NULL,
+    tiempo_inicio TIMESTAMP NOT NULL,
+    tiempo_final TIMESTAMP NOT NULL,
+    aprobado BOOLEAN NOT NULL,
+    cuestionario_id INT NOT NULL,
+    FOREIGN KEY (cuestionario_id) REFERENCES cuestionario(id) ON DELETE CASCADE
+);
 """)
+
 
 conn.commit()
 cur.close()
