@@ -125,16 +125,21 @@ def obtener_preguntas(cuestionario_id):
     return jsonify(preguntas), 200
 
 
-@app.route("/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
-def eliminar_cuestionario(cuestionario_id):
+@app.route("/cuestionario_completo/<int:cuestionario_id>", methods=["DELETE"])
+def eliminar_cuestionario_completo(cuestionario_id):
     conn = get_conn()
     cur = conn.cursor()
+    
+    cur.execute("DELETE FROM pregunta WHERE cuestionario_id=%s;", (cuestionario_id,))
     cur.execute("DELETE FROM cuestionario WHERE id=%s;", (cuestionario_id,))
+
     conn.commit()
+    count = cur.rowcount
     cur.close()
     conn.close()
 
-    return jsonify({"message": "deleted"}), 200
+    return jsonify({"message": "cuestionario y preguntas eliminadas", "count": count}), 200
+
 
 @app.route("/preguntas/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
 def eliminar_preguntas(cuestionario_id):
