@@ -182,54 +182,52 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
-@app.route("/estadisticas_cuestionario", methods=["GET"])
+@app.route("/estadisticas/reprobados", methods=["GET"])
 def estadisticas_reprobados():
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor(dictionary=True)
 
-    # Más reprobados
-    cur.execute("""
-        SELECT c.id AS cuestionario_id,
-               c.titulo AS nombre,
-               COUNT(a.*) AS total
-        FROM alumno a
-        JOIN cuestionario c ON a.cuestionario_id = c.id
-        WHERE a.aprobado = false
-        GROUP BY c.id, c.titulo
-        ORDER BY total DESC
-        LIMIT 1;
-    """)
-    mas_reprob = cur.fetchone()
+        # Más reprobados
+        cur.execute("""
+            SELECT c.id AS cuestionario_id,
+                   c.titulo AS nombre,
+                   COUNT(*) AS total
+            FROM alumno a
+            JOIN cuestionario c ON a.cuestionario_id = c.id
+            WHERE a.aprobado = false
+            GROUP BY c.id, c.titulo
+            ORDER BY total DESC
+            LIMIT 1;
+        """)
+        mas_reprob = cur.fetchone() or {}
 
-    # Menos reprobados
-    cur.execute("""
-        SELECT c.id AS cuestionario_id,
-               c.titulo AS nombre,
-               COUNT(a.*) AS total
-        FROM alumno a
-        JOIN cuestionario c ON a.cuestionario_id = c.id
-        WHERE a.aprobado = false
-        GROUP BY c.id, c.titulo
-        ORDER BY total ASC
-        LIMIT 1;
-    """)
-    menos_reprob = cur.fetchone()
+        # Menos reprobados
+        cur.execute("""
+            SELECT c.id AS cuestionario_id,
+                   c.titulo AS nombre,
+                   COUNT(*) AS total
+            FROM alumno a
+            JOIN cuestionario c ON a.cuestionario_id = c.id
+            WHERE a.aprobado = false
+            GROUP BY c.id, c.titulo
+            ORDER BY total ASC
+            LIMIT 1;
+        """)
+        menos_reprob = cur.fetchone() or {}
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
 
-    return jsonify({
-        "cuestionario_mas_reprobados": {
-            "cuestionario_id": mas_reprob[0],
-            "nombre": mas_reprob[1],
-            "total": mas_reprob[2]
-        },
-        "cuestionario_menos_reprobados": {
-            "cuestionario_id": menos_reprob[0],
-            "nombre": menos_reprob[1],
-            "total": menos_reprob[2]
-        }
-    })
+        return jsonify({
+            "cuestionario_mas_reprobados": mas_reprob,
+            "cuestionario_menos_reprobados": menos_reprob
+        })
+
+    except Exception as e:
+        print("ERROR EN EL ENDPOINT:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
