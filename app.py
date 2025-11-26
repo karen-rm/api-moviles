@@ -186,7 +186,7 @@ def guardar_alumno():
 def estadisticas_reprobados():
     try:
         conn = get_conn()
-        cur = conn.cursor(dictionary=True)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         # Más reprobados
         cur.execute("""
