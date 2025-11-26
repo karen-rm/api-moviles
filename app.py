@@ -182,50 +182,64 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
-@app.route("/estadisticas/reprobados", methods=["GET"])
-def estadisticas_reprobados():
+import psycopg2.extras
+
+@app.route("/estadisticas/aprobados", methods=["GET"])
+def estadisticas_aprobados():
     try:
         conn = get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Más reprobados
+        # Cuestionario con MÁS aprobados
         cur.execute("""
-            SELECT c.id AS cuestionario_id,
-                   c.titulo AS nombre,
-                   COUNT(*) AS total
-            FROM alumno a
-            JOIN cuestionario c ON a.cuestionario_id = c.id
-            WHERE a.aprobado = false
+            SELECT
+                c.id AS cuestionario_id,
+                c.titulo AS nombre,
+                COALESCE(SUM(CASE WHEN a.aprobado THEN 1 ELSE 0 END), 0) AS total_aprobados,
+                COALESCE(COUNT(a.id), 0) AS total_respuestas
+            FROM cuestionario c
+            LEFT JOIN alumno a ON a.cuestionario_id = c.id
             GROUP BY c.id, c.titulo
-            ORDER BY total DESC
+            ORDER BY total_aprobados DESC, total_respuestas DESC
             LIMIT 1;
         """)
-        mas_reprob = cur.fetchone() or {}
+        mas_aprob = cur.fetchone() or {
+            "cuestionario_id": None,
+            "nombre": None,
+            "total_aprobados": 0,
+            "total_respuestas": 0
+        }
 
-        # Menos reprobados
+        # Cuestionario con MENOS aprobados
         cur.execute("""
-            SELECT c.id AS cuestionario_id,
-                   c.titulo AS nombre,
-                   COUNT(*) AS total
-            FROM alumno a
-            JOIN cuestionario c ON a.cuestionario_id = c.id
-            WHERE a.aprobado = false
+            SELECT
+                c.id AS cuestionario_id,
+                c.titulo AS nombre,
+                COALESCE(SUM(CASE WHEN a.aprobado THEN 1 ELSE 0 END), 0) AS total_aprobados,
+                COALESCE(COUNT(a.id), 0) AS total_respuestas
+            FROM cuestionario c
+            LEFT JOIN alumno a ON a.cuestionario_id = c.id
             GROUP BY c.id, c.titulo
-            ORDER BY total ASC
+            ORDER BY total_aprobados ASC, total_respuestas ASC
             LIMIT 1;
         """)
-        menos_reprob = cur.fetchone() or {}
+        menos_aprob = cur.fetchone() or {
+            "cuestionario_id": None,
+            "nombre": None,
+            "total_aprobados": 0,
+            "total_respuestas": 0
+        }
 
         cur.close()
         conn.close()
 
         return jsonify({
-            "cuestionario_mas_reprobados": mas_reprob,
-            "cuestionario_menos_reprobados": menos_reprob
+            "cuestionario_mas_aprobados": mas_aprob,
+            "cuestionario_menos_aprobados": menos_aprob
         })
 
     except Exception as e:
-        print("ERROR EN EL ENDPOINT:", e)
+        print("ERROR /estadisticas/aprobados:", e)
         return jsonify({"error": str(e)}), 500
 
 
