@@ -182,16 +182,16 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
-@app.route("/estadisticas_cuestionario", methods=["GET"])
-def estadisticas_cuestionario():
+@app.route("/estadisticas/reprobados", methods=["GET"])
+def estadisticas_reprobados():
     conn = get_conn()
-    cur = conn.cursor(dictionary=True)
+    cur = conn.cursor()
 
     # Más reprobados
     cur.execute("""
         SELECT c.id AS cuestionario_id,
-        c.titulo AS nombre,
-        COUNT(a.*) AS total
+               c.titulo AS nombre,
+               COUNT(a.*) AS total
         FROM alumno a
         JOIN cuestionario c ON a.cuestionario_id = c.id
         WHERE a.aprobado = false
@@ -204,8 +204,8 @@ def estadisticas_cuestionario():
     # Menos reprobados
     cur.execute("""
         SELECT c.id AS cuestionario_id,
-        c.titulo AS nombre,
-        COUNT(a.*) AS total
+               c.titulo AS nombre,
+               COUNT(a.*) AS total
         FROM alumno a
         JOIN cuestionario c ON a.cuestionario_id = c.id
         WHERE a.aprobado = false
@@ -219,8 +219,16 @@ def estadisticas_cuestionario():
     conn.close()
 
     return jsonify({
-        "cuestionario_mas_reprobados": mas_reprob,
-        "cuestionario_menos_reprobados": menos_reprob,
+        "cuestionario_mas_reprobados": {
+            "cuestionario_id": mas_reprob[0],
+            "nombre": mas_reprob[1],
+            "total": mas_reprob[2]
+        },
+        "cuestionario_menos_reprobados": {
+            "cuestionario_id": menos_reprob[0],
+            "nombre": menos_reprob[1],
+            "total": menos_reprob[2]
+        }
     })
 
 
