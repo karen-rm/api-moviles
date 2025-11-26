@@ -153,6 +153,7 @@ def eliminar_preguntas(cuestionario_id):
     deleted = cur.rowcount
     return jsonify({"message": "deleted", "count": deleted}), 200
 
+
 @app.route("/alumno", methods=["POST"])
 def guardar_alumno():
     data = request.get_json()
@@ -182,7 +183,6 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
-import psycopg2.extras
 
 @app.route("/estadisticas/aprobados", methods=["GET"])
 def estadisticas_aprobados():
@@ -242,82 +242,88 @@ def estadisticas_aprobados():
         print("ERROR /estadisticas/aprobados:", e)
         return jsonify({"error": str(e)}), 500
     
+
 @app.route("/estadisticas/alumno/<string:nombre_cuestionario>", methods=["GET"])
 def estadisticas_por_nombre(nombre_cuestionario):
-    conn = get_conn()
-    cur = conn.cursor(dictionary=True)
+    try: 
+        conn = get_conn()
+        cur = conn.cursor(dictionary=True)
 
-    # Buscar el ID del cuestionario por el nombre
-    cur.execute("""
-        SELECT id 
-        FROM cuestionario 
-        WHERE titulo = %s
-        LIMIT 1;
-    """, (nombre_cuestionario,))
-    row = cur.fetchone()
+        # Buscar el ID del cuestionario por el nombre
+        cur.execute("""
+            SELECT id 
+            FROM cuestionario 
+            WHERE titulo = %s
+            LIMIT 1;
+        """, (nombre_cuestionario,))
+        row = cur.fetchone()
 
-    if not row:
+        if not row:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "Cuestionario no encontrado"}), 404
+
+        cuestionario_id = row["id"]
+
+        # Alumno con mayor puntaje
+        cur.execute("""
+            SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
+            FROM alumno
+            WHERE cuestionario_id=%s
+            ORDER BY puntaje DESC
+            LIMIT 1;
+        """, (cuestionario_id,))
+        mayor_puntaje = cur.fetchone()
+
+        # Alumno con menor puntaje
+        cur.execute("""
+            SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
+            FROM alumno
+            WHERE cuestionario_id=%s
+            ORDER BY puntaje ASC
+            LIMIT 1;
+        """, (cuestionario_id,))
+        menor_puntaje = cur.fetchone()
+
+        # Alumno con mayor tiempo de resolución
+        cur.execute("""
+            SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
+                TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
+            FROM alumno
+            WHERE cuestionario_id=%s
+            ORDER BY duracion DESC
+            LIMIT 1;
+        """, (cuestionario_id,))
+        mayor_tiempo = cur.fetchone()
+
+        # Alumno con menor tiempo de resolución
+        cur.execute("""
+            SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
+                TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
+            FROM alumno
+            WHERE cuestionario_id=%s
+            ORDER BY duracion ASC
+            LIMIT 1;
+        """, (cuestionario_id,))
+        menor_tiempo = cur.fetchone()
+
         cur.close()
         conn.close()
-        return jsonify({"error": "Cuestionario no encontrado"}), 404
 
-    cuestionario_id = row["id"]
-
-    # Alumno con mayor puntaje
-    cur.execute("""
-        SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
-        FROM alumno
-        WHERE cuestionario_id=%s
-        ORDER BY puntaje DESC
-        LIMIT 1;
-    """, (cuestionario_id,))
-    mayor_puntaje = cur.fetchone()
-
-    # Alumno con menor puntaje
-    cur.execute("""
-        SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
-        FROM alumno
-        WHERE cuestionario_id=%s
-        ORDER BY puntaje ASC
-        LIMIT 1;
-    """, (cuestionario_id,))
-    menor_puntaje = cur.fetchone()
-
-    # Alumno con mayor tiempo de resolución
-    cur.execute("""
-        SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
-               TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
-        FROM alumno
-        WHERE cuestionario_id=%s
-        ORDER BY duracion DESC
-        LIMIT 1;
-    """, (cuestionario_id,))
-    mayor_tiempo = cur.fetchone()
-
-    # Alumno con menor tiempo de resolución
-    cur.execute("""
-        SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
-               TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
-        FROM alumno
-        WHERE cuestionario_id=%s
-        ORDER BY duracion ASC
-        LIMIT 1;
-    """, (cuestionario_id,))
-    menor_tiempo = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    return jsonify({
-        "cuestionario": {
-            "id": cuestionario_id,
-            "nombre": nombre_cuestionario
-        },
-        "alumno_mayor_puntaje": mayor_puntaje,
-        "alumno_menor_puntaje": menor_puntaje,
-        "alumno_mayor_tiempo": mayor_tiempo,
-        "alumno_menor_tiempo": menor_tiempo
-    })
+        return jsonify({
+            "cuestionario": {
+                "id": cuestionario_id,
+                "nombre": nombre_cuestionario
+            },
+            "alumno_mayor_puntaje": mayor_puntaje,
+            "alumno_menor_puntaje": menor_puntaje,
+            "alumno_mayor_tiempo": mayor_tiempo,
+            "alumno_menor_tiempo": menor_tiempo
+        })
+    
+    except Exception as e:
+        print("ERROR /estadisticas/alumno/<string:nombre_cuestionario>:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 
