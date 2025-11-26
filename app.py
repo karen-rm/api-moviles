@@ -247,7 +247,7 @@ def estadisticas_aprobados():
 def estadisticas_por_nombre(nombre_cuestionario):
     try: 
         conn = get_conn()
-        cur = conn.cursor(dictionary=True)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         # Buscar el ID del cuestionario por el nombre
         cur.execute("""
@@ -269,7 +269,7 @@ def estadisticas_por_nombre(nombre_cuestionario):
         cur.execute("""
             SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
             FROM alumno
-            WHERE cuestionario_id=%s
+            WHERE cuestionario_id = %s
             ORDER BY puntaje DESC
             LIMIT 1;
         """, (cuestionario_id,))
@@ -279,29 +279,29 @@ def estadisticas_por_nombre(nombre_cuestionario):
         cur.execute("""
             SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final
             FROM alumno
-            WHERE cuestionario_id=%s
+            WHERE cuestionario_id = %s
             ORDER BY puntaje ASC
             LIMIT 1;
         """, (cuestionario_id,))
         menor_puntaje = cur.fetchone()
 
-        # Alumno con mayor tiempo de resolución
+        # Alumno con mayor tiempo
         cur.execute("""
             SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
-                TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
+                   EXTRACT(EPOCH FROM (tiempo_final - tiempo_inicio)) AS duracion
             FROM alumno
-            WHERE cuestionario_id=%s
+            WHERE cuestionario_id = %s
             ORDER BY duracion DESC
             LIMIT 1;
         """, (cuestionario_id,))
         mayor_tiempo = cur.fetchone()
 
-        # Alumno con menor tiempo de resolución
+        # Alumno con menor tiempo
         cur.execute("""
             SELECT id, nombre, puntaje, tiempo_inicio, tiempo_final,
-                TIMESTAMPDIFF(SECOND, tiempo_inicio, tiempo_final) AS duracion
+                   EXTRACT(EPOCH FROM (tiempo_final - tiempo_inicio)) AS duracion
             FROM alumno
-            WHERE cuestionario_id=%s
+            WHERE cuestionario_id = %s
             ORDER BY duracion ASC
             LIMIT 1;
         """, (cuestionario_id,))
