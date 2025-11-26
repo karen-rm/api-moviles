@@ -182,7 +182,7 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
-@app.route("/estadisticas/reprobados", methods=["GET"])
+@app.route("/estadisticas_cuestionario", methods=["GET"])
 def estadisticas_reprobados():
     conn = get_conn()
     cur = conn.cursor()
