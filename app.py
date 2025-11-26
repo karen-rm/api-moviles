@@ -182,6 +182,47 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
+@app.route("/estadisticas_cuestionario", methods=["GET"])
+def estadisticas_cuestionario():
+    conn = get_conn()
+    cur = conn.cursor(dictionary=True)
+
+    # Más reprobados
+    cur.execute("""
+        SELECT c.id AS cuestionario_id,
+        c.titulo AS nombre,
+        COUNT(a.*) AS total
+        FROM alumno a
+        JOIN cuestionario c ON a.cuestionario_id = c.id
+        WHERE a.aprobado = false
+        GROUP BY c.id, c.titulo
+        ORDER BY total DESC
+        LIMIT 1;
+    """)
+    mas_reprob = cur.fetchone()
+
+    # Menos reprobados
+    cur.execute("""
+        SELECT c.id AS cuestionario_id,
+        c.titulo AS nombre,
+        COUNT(a.*) AS total
+        FROM alumno a
+        JOIN cuestionario c ON a.cuestionario_id = c.id
+        WHERE a.aprobado = false
+        GROUP BY c.id, c.titulo
+        ORDER BY total ASC
+        LIMIT 1;
+    """)
+    menos_reprob = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({
+        "cuestionario_mas_reprobados": mas_reprob,
+        "cuestionario_menos_reprobados": menos_reprob,
+    })
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
