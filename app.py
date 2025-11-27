@@ -334,7 +334,7 @@ def update_cuestionario(cuestionario_id):
         return jsonify({"error": "El titulo es requerido"}), 400
 
     conn = get_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         UPDATE cuestionario
@@ -366,7 +366,7 @@ def update_pregunta(pregunta_id):
         return jsonify({"error": "Todos los campos son requeridos"}), 400
 
     conn = get_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         UPDATE pregunta
@@ -418,7 +418,7 @@ def delete_pregunta():
         }), 400
 
     conn = get_conn()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Verificar si existe
     cur.execute("""
