@@ -391,7 +391,7 @@ def update_pregunta(pregunta_id):
 @app.route("/cuestionario/<int:id>/detalle", methods=["GET"])
 def cuestionario_detalle(id):
     conn = get_conn()
-    cur = conn.cursor(dictionary=True)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("SELECT id, titulo FROM cuestionario WHERE id=%s", (id,))
     c = cur.fetchone()
