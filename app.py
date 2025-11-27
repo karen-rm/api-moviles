@@ -353,40 +353,44 @@ def update_cuestionario(cuestionario_id):
 
     return jsonify(actualizado), 200
 
-@app.route("/pregunta/<int:pregunta_id>", methods=["PUT"])
-def update_pregunta(pregunta_id):
+@app.route("/pregunta/<int:id>", methods=["PUT"])
+def actualizar_pregunta(id):
     data = request.get_json()
 
     pregunta = data.get("pregunta")
     correcta = data.get("correcta")
-    opc1 = data.get("opc1")
-    opc2 = data.get("opc2")
+    opcion1 = data.get("opcion1")
+    opcion2 = data.get("opcion2")
 
-    if not pregunta or not correcta or not opc1 or not opc2:
+    # Validar campos
+    if not pregunta or not correcta or not opcion1 or not opcion2:
         return jsonify({"error": "Todos los campos son requeridos"}), 400
 
     conn = get_conn()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # Verificar existencia
+    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "La pregunta no existe"}), 404
+
+    # Actualizar
     cur.execute("""
         UPDATE pregunta
-        SET pregunta = %s,
-            respuesta_correcta = %s,
-            opcion1 = %s,
-            opcion2 = %s
-        WHERE id = %s
-        RETURNING id, pregunta, respuesta_correcta, opcion1, opcion2;
-    """, (pregunta, correcta, opc1, opc2, pregunta_id))
+        SET pregunta=%s, respuesta_correcta=%s, opcion1=%s, opcion2=%s
+        WHERE id=%s
+    """, (pregunta, correcta, opcion1, opcion2, id))
 
-    actualizado = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
 
-    if not actualizado:
-        return jsonify({"error": "Pregunta no encontrada"}), 404
+    return jsonify({"msg": "Pregunta actualizada correctamente"}), 200
 
-    return jsonify(actualizado), 200
 
 @app.route("/cuestionario/<int:id>/detalle", methods=["GET"])
 def cuestionario_detalle(id):
