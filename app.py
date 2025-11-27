@@ -325,6 +325,131 @@ def estadisticas_por_nombre(nombre_cuestionario):
         print("ERROR /estadisticas/alumno/<string:nombre_cuestionario>:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route("/cuestionario/<int:cuestionario_id>", methods=["PUT"])
+def update_cuestionario(cuestionario_id):
+    data = request.get_json()
+    nuevo_titulo = data.get("titulo")
+
+    if not nuevo_titulo:
+        return jsonify({"error": "El titulo es requerido"}), 400
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE cuestionario
+        SET titulo = %s
+        WHERE id = %s
+        RETURNING id, titulo, codigo;
+    """, (nuevo_titulo, cuestionario_id))
+
+    actualizado = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if not actualizado:
+        return jsonify({"error": "Cuestionario no encontrado"}), 404
+
+    return jsonify(actualizado), 200
+
+@app.route("/pregunta/<int:pregunta_id>", methods=["PUT"])
+def update_pregunta(pregunta_id):
+    data = request.get_json()
+
+    pregunta = data.get("pregunta")
+    correcta = data.get("correcta")
+    opc1 = data.get("opc1")
+    opc2 = data.get("opc2")
+
+    if not pregunta or not correcta or not opc1 or not opc2:
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE pregunta
+        SET pregunta = %s,
+            respuesta_correcta = %s,
+            opcion1 = %s,
+            opcion2 = %s
+        WHERE id = %s
+        RETURNING id, pregunta, respuesta_correcta, opcion1, opcion2;
+    """, (pregunta, correcta, opc1, opc2, pregunta_id))
+
+    actualizado = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if not actualizado:
+        return jsonify({"error": "Pregunta no encontrada"}), 404
+
+    return jsonify(actualizado), 200
+
+@app.route("/cuestionario/<int:id>/detalle", methods=["GET"])
+def cuestionario_detalle(id):
+    conn = get_conn()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT id, titulo FROM cuestionario WHERE id=%s", (id,))
+    c = cur.fetchone()
+
+    cur.execute("SELECT * FROM pregunta WHERE cuestionario_id=%s", (id,))
+    p = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"titulo": c["titulo"], "preguntas": p}), 200
+
+
+@app.route("/pregunta", methods=["DELETE"])
+def delete_pregunta():
+    data = request.get_json()
+
+    pregunta = data.get("pregunta")
+    cuestionario_id = data.get("cuestionario_id")
+
+    if not pregunta or not cuestionario_id:
+        return jsonify({
+            "error": "Los campos 'pregunta' y 'cuestionario_id' son requeridos"
+        }), 400
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # Verificar si existe
+    cur.execute("""
+        SELECT id 
+        FROM pregunta 
+        WHERE pregunta = %s AND cuestionario_id = %s
+        LIMIT 1
+    """, (pregunta, cuestionario_id))
+
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "No se encontró la pregunta en este cuestionario"}), 404
+
+    # Eliminar
+    cur.execute("""
+        DELETE FROM pregunta 
+        WHERE pregunta = %s AND cuestionario_id = %s
+    """, (pregunta, cuestionario_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"msg": "Pregunta eliminada correctamente"}), 200
+
+
+
+
 
 
 if __name__ == "__main__":
