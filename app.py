@@ -405,47 +405,29 @@ def cuestionario_detalle(id):
     return jsonify({"titulo": c["titulo"], "preguntas": p}), 200
 
 
-@app.route("/pregunta", methods=["DELETE"])
-def delete_pregunta():
-    data = request.get_json()
-
-    pregunta = data.get("pregunta")
-    cuestionario_id = data.get("cuestionario_id")
-
-    if not pregunta or not cuestionario_id:
-        return jsonify({
-            "error": "Los campos 'pregunta' y 'cuestionario_id' son requeridos"
-        }), 400
-
+@app.route("/pregunta/<int:id>", methods=["DELETE"])
+def delete_pregunta(id):
     conn = get_conn()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Verificar si existe
-    cur.execute("""
-        SELECT id 
-        FROM pregunta 
-        WHERE pregunta = %s AND cuestionario_id = %s
-        LIMIT 1
-    """, (pregunta, cuestionario_id))
-
+    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
     row = cur.fetchone()
 
     if not row:
         cur.close()
         conn.close()
-        return jsonify({"error": "No se encontró la pregunta en este cuestionario"}), 404
+        return jsonify({"error": "La pregunta no existe"}), 404
 
     # Eliminar
-    cur.execute("""
-        DELETE FROM pregunta 
-        WHERE pregunta = %s AND cuestionario_id = %s
-    """, (pregunta, cuestionario_id))
-
+    cur.execute("DELETE FROM pregunta WHERE id = %s", (id,))
     conn.commit()
+
     cur.close()
     conn.close()
 
-    return jsonify({"msg": "Pregunta eliminada correctamente"}), 200
+    return jsonify({"msg": "Pregunta eliminada"}), 200
+
 
 
 
