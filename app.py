@@ -433,6 +433,37 @@ def delete_pregunta(id):
     return jsonify({"msg": "Pregunta eliminada"}), 200
 
 
+@app.route("/alumnos/cuestionario/<int:cuestionario_id>", methods=["GET"])
+def obtener_alumnos_por_cuestionario(cuestionario_id):
+    try:
+        conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                id,
+                nombre,
+                puntaje,
+                tiempo_inicio,
+                tiempo_final,
+                aprobado,
+                cuestionario_id,
+                EXTRACT(EPOCH FROM (tiempo_final - tiempo_inicio)) AS tiempo_total
+            FROM alumno
+            WHERE cuestionario_id = %s
+            ORDER BY id ASC;
+        """, (cuestionario_id,))
+
+        alumnos = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify(alumnos), 200
+
+    except Exception as e:
+        print("ERROR /alumnos/cuestionario/<id>:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 
