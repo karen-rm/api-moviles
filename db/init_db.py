@@ -1,12 +1,14 @@
+import os
 import psycopg2
+from dotenv import load_dotenv
 
 conn = psycopg2.connect(
-    host="ballast.proxy.rlwy.net",
-    port=30634,
-    dbname="railway",
-    user="postgres",
-    password="fmLDYpkxrKDAHWOLTiAyWzDQQLuPxxsl",
-    sslmode="require"
+    host= os.getenv("DB_HOST"),
+    port= os.getenv("DB_PORT"),
+    dbname= os.getenv("DB_NAME"),
+    user= os.getenv("DB_USER"),
+    password= os.getenv("DB_PASWORD"),
+    sslmode= os.getenv("DB_SSLMODE", "require")
 )
 
 cur = conn.cursor()
