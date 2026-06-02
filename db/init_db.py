@@ -1,24 +1,31 @@
-import os
 import psycopg2
 from dotenv import load_dotenv
+import os
+
+load_dotenv()  
+
+print("Conectando a la base de datos...")
 
 conn = psycopg2.connect(
     host= os.getenv("DB_HOST"),
     port= os.getenv("DB_PORT"),
     dbname= os.getenv("DB_NAME"),
     user= os.getenv("DB_USER"),
-    password= os.getenv("DB_PASWORD"),
-    sslmode= os.getenv("DB_SSLMODE", "require")
+    password= os.getenv("DB_PASSWORD"),
+    sslmode= os.getenv("DB_SSLMODE")
 )
 
 cur = conn.cursor()
 
-'''cur.execute("""
+
+cur.execute("""
 CREATE TABLE IF NOT EXISTS cuestionario (
     id SERIAL PRIMARY KEY,
-    titulo TEXT NOT NULL
+    titulo TEXT NOT NULL,
+    codigo VARCHAR(8)
 );
 """)
+
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS pregunta (
@@ -30,26 +37,8 @@ CREATE TABLE IF NOT EXISTS pregunta (
     cuestionario_id INT NOT NULL,
     FOREIGN KEY (cuestionario_id) REFERENCES cuestionario(id) ON DELETE CASCADE
 );
-""")'''
-
-cur.execute("""
-CREATE TABLE IF NOT EXISTS alumno (
-    id SERIAL PRIMARY KEY,
-    nombre TEXT NOT NULL,
-    puntaje INT NOT NULL,
-    tiempo_inicio TIMESTAMP NOT NULL,
-    tiempo_final TIMESTAMP NOT NULL,
-    aprobado BOOLEAN NOT NULL,
-    cuestionario_id INT NOT NULL,
-    FOREIGN KEY (cuestionario_id) REFERENCES cuestionario(id) ON DELETE CASCADE
-);
 """)
 
-cur.execute("""
-ALTER TABLE cuestionario
-ALTER COLUMN codigo TYPE VARCHAR(8);
-
-""")
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS alumno (
@@ -64,9 +53,8 @@ CREATE TABLE IF NOT EXISTS alumno (
 );
 """)
 
-
 conn.commit()
 cur.close()
 conn.close()
 
-print("BD lista con ambas tablas.")
+print("¡BD lista con todas las tablas creadas exitosamente!")
