@@ -6,18 +6,13 @@ import secrets
 import string
 from psycopg2.extras import RealDictCursor
 import psycopg2.extras
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 app = Flask(__name__)
 CORS(app)
 
-import os
-
-print("DATABASE_URL =", os.getenv("DATABASE_URL"))
-print("PGHOST =", os.getenv("PGHOST"))
-print("PGUSER =", os.getenv("PGUSER"))
-print("PGDATABASE =", os.getenv("PGDATABASE"))
-print("PGPORT =", os.getenv("PGPORT"))
-print("TEST_VAR =", os.getenv("TEST_VAR"))
 
 def get_conn():
 
@@ -38,7 +33,7 @@ def generar_codigo():
     chars = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(chars) for _ in range(8))
 
-@app.route("/cuestionarios", methods=["GET"])
+@app.route("/cuestionarios", methods=["GET"]) 
 def get_cuestionarios():
     conn = get_conn()
     cur = conn.cursor()
@@ -48,7 +43,7 @@ def get_cuestionarios():
     conn.close()
     return jsonify(rows), 200
 
-@app.route("/cuestionario", methods=["POST"])
+@app.route("/cuestionarios", methods=["POST"]) 
 def create_cuestionario():
     data = request.get_json()
     titulo = data.get("titulo")
@@ -71,61 +66,35 @@ def create_cuestionario():
 
     return jsonify(new), 201
 
-
-@app.route("/pregunta", methods=["POST"])
-def create_pregunta():
+@app.route("/cuestionarios/<int:cuestionario_id>", methods=["PUT"]) 
+def update_cuestionario(cuestionario_id):
     data = request.get_json()
+    nuevo_titulo = data.get("titulo")
 
-    pregunta = data.get("pregunta")
-    correcta = data.get("correcta")
-    opc1 = data.get("opc1")
-    opc2 = data.get("opc2")
-    cuestionario_id = data.get("cuestionario_id")
+    if not nuevo_titulo:
+        return jsonify({"error": "El titulo es requerido"}), 400
 
-    if not (pregunta and correcta and opc1 and opc2 and cuestionario_id):
-        return jsonify({"error": "Todos los campos son requeridos"}), 400
-
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO pregunta (pregunta, respuesta_correcta, opcion1, opcion2, cuestionario_id)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id, pregunta;
-    """, (pregunta, correcta, opc1, opc2, cuestionario_id))
-
-    new = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify(new), 201
-
-
-@app.route("/preguntas/<int:cuestionario_id>", methods=["GET"])
-def obtener_preguntas(cuestionario_id):
     conn = get_conn()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
-        SELECT
-            id,
-            pregunta,
-            respuesta_correcta,
-            opcion1,
-            opcion2,
-            cuestionario_id
-        FROM pregunta
-        WHERE cuestionario_id = %s
-        ORDER BY id ASC;
-    """, (cuestionario_id,))
+        UPDATE cuestionario
+        SET titulo = %s
+        WHERE id = %s
+        RETURNING id, titulo, codigo;
+    """, (nuevo_titulo, cuestionario_id))
 
-    preguntas = cur.fetchall()
+    actualizado = cur.fetchone()
+    conn.commit()
+    cur.close()
     conn.close()
 
-    return jsonify(preguntas), 200
+    if not actualizado:
+        return jsonify({"error": "Cuestionario no encontrado"}), 404
 
+    return jsonify(actualizado), 200
 
-@app.route("/cuestionario_completo/<int:cuestionario_id>", methods=["DELETE"])
+@app.route("/cuestionarios/<int:cuestionario_id>", methods=["DELETE"]) 
 def eliminar_cuestionario_completo(cuestionario_id):
     conn = get_conn()
     cur = conn.cursor()
@@ -140,8 +109,95 @@ def eliminar_cuestionario_completo(cuestionario_id):
 
     return jsonify({"message": "cuestionario y preguntas eliminadas", "count": count}), 200
 
+@app.route("/cuestionarios/<int:id>", methods=["GET"]) 
+def cuestionario_detalle(id):
+    conn = get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-@app.route("/preguntas/cuestionario/<int:cuestionario_id>", methods=["DELETE"])
+    cur.execute("SELECT id, titulo FROM cuestionario WHERE id=%s", (id,))
+    c = cur.fetchone()
+
+    cur.execute("SELECT * FROM pregunta WHERE cuestionario_id=%s", (id,))
+    p = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"titulo": c["titulo"], "preguntas": p}), 200
+
+@app.route("/cuestionarios/<int:cuestionario_id>/preguntas", methods=["POST"]) 
+def create_pregunta(cuestionario_id):
+    data = request.get_json()
+
+    pregunta = data.get("pregunta")
+    correcta = data.get("correcta")
+    opc1 = data.get("opc1")
+    opc2 = data.get("opc2")
+
+    if not (pregunta and correcta and opc1 and opc2):
+        return jsonify({"error": "Todos los campos de la pregunta son requeridos"}), 400
+
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO pregunta (pregunta, respuesta_correcta, opcion1, opcion2, cuestionario_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, pregunta;
+        """, (pregunta, correcta, opc1, opc2, cuestionario_id))
+
+        new = cur.fetchone()
+        conn.commit()
+        
+        return jsonify(new), 201
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error al crear pregunta para cuestionario {cuestionario_id}:", e)
+        return jsonify({"error": "No se pudo crear la pregunta. Verifica que el cuestionario exista."}), 500
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+@app.route("/cuestionarios/<int:cuestionario_id>/preguntas", methods=["GET"]) 
+def obtener_preguntas(cuestionario_id):
+    try:
+        conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                id,
+                pregunta,
+                respuesta_correcta,
+                opcion1,
+                opcion2,
+                cuestionario_id
+            FROM pregunta
+            WHERE cuestionario_id = %s
+            ORDER BY id ASC;
+        """, (cuestionario_id,))
+
+        preguntas = cur.fetchall()
+        
+        return jsonify(preguntas), 200
+
+    except Exception as e:
+        print(f"Error al obtener preguntas del cuestionario {cuestionario_id}:", e)
+        return jsonify({"error": "Error interno del servidor al buscar las preguntas"}), 500
+
+    finally:
+        # Cerramos los recursos de forma segura
+        if 'cur' in locals() and cur:
+            cur.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
+@app.route("/cuestionarios/<int:cuestionario_id>/preguntas", methods=["DELETE"]) 
 def eliminar_preguntas(cuestionario_id):
     conn = get_conn()
     cur = conn.cursor()
@@ -153,8 +209,69 @@ def eliminar_preguntas(cuestionario_id):
     deleted = cur.rowcount
     return jsonify({"message": "deleted", "count": deleted}), 200
 
+@app.route("/preguntas/<int:id>", methods=["PUT"]) 
+def actualizar_pregunta(id):
+    data = request.get_json()
 
-@app.route("/alumno", methods=["POST"])
+    pregunta = data.get("pregunta")
+    correcta = data.get("correcta")
+    opcion1 = data.get("opcion1")
+    opcion2 = data.get("opcion2")
+
+    # Validar campos
+    if not pregunta or not correcta or not opcion1 or not opcion2:
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
+    conn = get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Verificar existencia
+    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "La pregunta no existe"}), 404
+
+    # Actualizar
+    cur.execute("""
+        UPDATE pregunta
+        SET pregunta=%s, respuesta_correcta=%s, opcion1=%s, opcion2=%s
+        WHERE id=%s
+    """, (pregunta, correcta, opcion1, opcion2, id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"msg": "Pregunta actualizada correctamente"}), 200
+
+
+@app.route("/preguntas/<int:id>", methods=["DELETE"]) 
+def delete_pregunta(id):
+    conn = get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Verificar si existe
+    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "La pregunta no existe"}), 404
+
+    # Eliminar
+    cur.execute("DELETE FROM pregunta WHERE id = %s", (id,))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"msg": "Pregunta eliminada"}), 200
+
+@app.route("/alumnos", methods=["POST"]) 
 def guardar_alumno():
     data = request.get_json()
 
@@ -183,8 +300,40 @@ def guardar_alumno():
 
     return jsonify(new), 201
 
+@app.route("/cuestionarios/<int:cuestionario_id>/alumnos", methods=["GET"]) 
+def obtener_alumnos_por_cuestionario(cuestionario_id):
+    try:
+        conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-@app.route("/estadisticas/aprobados", methods=["GET"])
+        cur.execute("""
+            SELECT
+                id,
+                nombre,
+                puntaje,
+                tiempo_inicio,
+                tiempo_final,
+                aprobado,
+                cuestionario_id,
+                EXTRACT(EPOCH FROM (tiempo_final - tiempo_inicio)) AS tiempo_total
+            FROM alumno
+            WHERE cuestionario_id = %s
+            ORDER BY id ASC;
+        """, (cuestionario_id,))
+
+        alumnos = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify(alumnos), 200
+
+    except Exception as e:
+        print("ERROR /alumnos/cuestionario/<id>:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/estadisticas/cuestionarios/aprobados", methods=["GET"]) 
 def estadisticas_aprobados():
     try:
         conn = get_conn()
@@ -243,7 +392,7 @@ def estadisticas_aprobados():
         return jsonify({"error": str(e)}), 500
     
 
-@app.route("/estadisticas/alumno/<string:nombre_cuestionario>", methods=["GET"])
+@app.route("/estadisticas/alumno/<string:nombre_cuestionario>", methods=["GET"]) 
 def estadisticas_por_nombre(nombre_cuestionario):
     try: 
         conn = get_conn()
@@ -324,150 +473,7 @@ def estadisticas_por_nombre(nombre_cuestionario):
     except Exception as e:
         print("ERROR /estadisticas/alumno/<string:nombre_cuestionario>:", e)
         return jsonify({"error": str(e)}), 500
-
-@app.route("/cuestionario/<int:cuestionario_id>", methods=["PUT"])
-def update_cuestionario(cuestionario_id):
-    data = request.get_json()
-    nuevo_titulo = data.get("titulo")
-
-    if not nuevo_titulo:
-        return jsonify({"error": "El titulo es requerido"}), 400
-
-    conn = get_conn()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
-        UPDATE cuestionario
-        SET titulo = %s
-        WHERE id = %s
-        RETURNING id, titulo, codigo;
-    """, (nuevo_titulo, cuestionario_id))
-
-    actualizado = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    if not actualizado:
-        return jsonify({"error": "Cuestionario no encontrado"}), 404
-
-    return jsonify(actualizado), 200
-
-@app.route("/pregunta/<int:id>", methods=["PUT"])
-def actualizar_pregunta(id):
-    data = request.get_json()
-
-    pregunta = data.get("pregunta")
-    correcta = data.get("correcta")
-    opcion1 = data.get("opcion1")
-    opcion2 = data.get("opcion2")
-
-    # Validar campos
-    if not pregunta or not correcta or not opcion1 or not opcion2:
-        return jsonify({"error": "Todos los campos son requeridos"}), 400
-
-    conn = get_conn()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    # Verificar existencia
-    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
-    row = cur.fetchone()
-
-    if not row:
-        cur.close()
-        conn.close()
-        return jsonify({"error": "La pregunta no existe"}), 404
-
-    # Actualizar
-    cur.execute("""
-        UPDATE pregunta
-        SET pregunta=%s, respuesta_correcta=%s, opcion1=%s, opcion2=%s
-        WHERE id=%s
-    """, (pregunta, correcta, opcion1, opcion2, id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify({"msg": "Pregunta actualizada correctamente"}), 200
-
-
-@app.route("/cuestionario/<int:id>/detalle", methods=["GET"])
-def cuestionario_detalle(id):
-    conn = get_conn()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("SELECT id, titulo FROM cuestionario WHERE id=%s", (id,))
-    c = cur.fetchone()
-
-    cur.execute("SELECT * FROM pregunta WHERE cuestionario_id=%s", (id,))
-    p = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return jsonify({"titulo": c["titulo"], "preguntas": p}), 200
-
-
-@app.route("/pregunta/<int:id>", methods=["DELETE"])
-def delete_pregunta(id):
-    conn = get_conn()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    # Verificar si existe
-    cur.execute("SELECT id FROM pregunta WHERE id = %s", (id,))
-    row = cur.fetchone()
-
-    if not row:
-        cur.close()
-        conn.close()
-        return jsonify({"error": "La pregunta no existe"}), 404
-
-    # Eliminar
-    cur.execute("DELETE FROM pregunta WHERE id = %s", (id,))
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return jsonify({"msg": "Pregunta eliminada"}), 200
-
-
-@app.route("/alumnos/cuestionario/<int:cuestionario_id>", methods=["GET"])
-def obtener_alumnos_por_cuestionario(cuestionario_id):
-    try:
-        conn = get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-        cur.execute("""
-            SELECT
-                id,
-                nombre,
-                puntaje,
-                tiempo_inicio,
-                tiempo_final,
-                aprobado,
-                cuestionario_id,
-                EXTRACT(EPOCH FROM (tiempo_final - tiempo_inicio)) AS tiempo_total
-            FROM alumno
-            WHERE cuestionario_id = %s
-            ORDER BY id ASC;
-        """, (cuestionario_id,))
-
-        alumnos = cur.fetchall()
-
-        cur.close()
-        conn.close()
-
-        return jsonify(alumnos), 200
-
-    except Exception as e:
-        print("ERROR /alumnos/cuestionario/<id>:", e)
-        return jsonify({"error": str(e)}), 500
-
-
-
-
+    
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
