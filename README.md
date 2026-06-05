@@ -40,7 +40,7 @@ PostgreSQL alojada en Railway.
 "/estadisticas/cuestionarios/aprobados", methods=["GET"]) 
 <img width="769" height="555" alt="image" src="https://github.com/user-attachments/assets/141a302b-2dbf-45c0-858d-2ed7f29fc9b0" />
 
-
+faltan* 
 
 ## Arquitectura 
 API monolítica  está desarrollada con Flask y sigue una arquitectura REST orientada a recursos. Los endpoints reciben solicitudes HTTP, procesan la lógica necesaria y ejecutan consultas sobre una base de datos PostgreSQL alojada en Railway.
