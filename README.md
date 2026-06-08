@@ -61,15 +61,17 @@ Los endpoints reciben solicitudes HTTP, procesan la lógica necesaria y ejecutan
 - Preguntas
 - Alumnos
 - Estadísticas
-- 
+  
 ### Operaciones soportadas
 - GET: Consulta de información.
 - POST: Creación de recursos.
 - PUT: Actualización de recursos existentes.
 - DELETE: Eliminación de recursos.
+  
+  <br><br>
+#### API DESPLEGADA EN RAILWAY 
 <img width="817" height="382" alt="image" src="https://github.com/user-attachments/assets/f69e23b9-9301-4123-b16a-d9de94cdf31f" />
-<img width="921" height="423" alt="image" src="https://github.com/user-attachments/assets/94ef9365-f29d-4631-8c41-cd81fbd3f249" />
-
+<br>
 
 ## Tecnologias
 - Flask
@@ -78,66 +80,82 @@ Los endpoints reciben solicitudes HTTP, procesan la lógica necesaria y ejecutan
 - PostgreSQL
 
 
-## Instalación
-Nota de Despliegue: > Esta API ya no se encuentra disponible públicamente en Railway. Sin embargo, el código es completamente funcional. Puedes clonar este repositorio para probar los endpoints en tu máquina local (localhost) o utilizarlo para desplegar tu propia instancia en el servicio en la nube de tu preferencia.
+## Instalación 
 
-Requisitos Previos
-Python 3.8+ instalado.
+#### Nota de Despliegue: 
+Esta API ya no se encuentra disponible públicamente en Railway. Sin embargo, el código es completamente funcional. Puedes clonar este repositorio para probar los endpoints en tu máquina local (localhost) o utilizarlo para desplegar tu propia instancia en el servicio en la nube de tu preferencia.
 
-PostgreSQL corriendo localmente (puedes usar Docker o pgAdmin).
+#### Requisitos Previos
+- Python 3.8+ instalado.
+- PostgreSQL corriendo localmente (puedes usar Docker o pgAdmin).
+- (Recomendado) Postman o Insomnia para probar los endpoints.
 
-(Opcional) Postman para probar los endpoints.
-
-Pasos para levantar la API localmente
+#### Pasos para levantar la API localmente
 1. Clonar el repositorio
 Abre tu terminal y ejecuta:
 
-Bash
+```bash
 git clone https://github.com/karen-rm/api-moviles.git
+```
+```bash
 cd api-moviles
+```
+
 2. Crear y activar un entorno virtual (Recomendado)
 Para mantener las dependencias aisladas, crea un entorno virtual:
 
-Bash
-# En Windows:
+En Windows:
+```bash
 python -m venv venv
+```
+```bash
 venv\Scripts\activate
+```
 
-# En Mac/Linux:
+En Mac/Linux:
+```bash
 python3 -m venv venv
+```
+```bash
 source venv/bin/activate
+```
+
 3. Instalar las dependencias
 
-Bash
+```bash
 pip install -r requirements.txt
-4. Configurar las Variables de Entorno
-Crea un archivo llamado .env en la raíz del proyecto y agrega tus credenciales de PostgreSQL. Asegúrate de que los datos coincidan con tu base de datos local:
+```
 
-Fragmento de código
-# Variables para la API
-PGHOST=127.0.0.1
-PGPORT=5432
-PGDATABASE=postgres
-PGUSER=postgres
-PGPASSWORD=tu_contraseña
+4. Configurar las Variables de Entorno 
+Crea un archivo llamado .env en la raíz del proyecto y agrega tus credenciales de PostgreSQL. Asegúrate de que los datos coincidan con tu base de datos (Sigue el ejemplo del .envexample):
 
-# Variables para inicializar las tablas
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=postgres
-DB_USER=postgres
-DB_PASSWORD=tu_contraseña
-DB_SSLMODE=disable
+##### Variables para la API
+- PGHOST
+- PGPORT
+- PGDATABASE
+- PGUSER
+- PGPASSWORD
+
+#### Variables para la Base de Datos
+- DB_HOST
+- DB_PORT
+- DB_NAME
+- DB_USER
+- DB_PASSWORD
+- DB_SSLMODE
+
 5. Inicializar la Base de Datos
 Antes de correr la API, debes crear las tablas (cuestionario, pregunta, alumno). Ejecuta el script de inicialización:
 
-Bash
+```bash
 python db/init_db.py
+```
 (Si todo sale bien, verás el mensaje: "BD lista con todas las tablas creadas exitosamente").
 
-6. Ejecutar el servidor Flask
+6. Ejecutar el servidor Flask (en caso de hacerlo localmente)
 Finalmente, levanta la API:
 
-Bash
+```bash
 python app.py
+```
 La API estará corriendo y lista para recibir peticiones en: http://127.0.0.1:5000
